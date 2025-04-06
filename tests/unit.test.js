@@ -5,6 +5,11 @@ describe('Yale to Fale replacement logic', () => {
   
   test('should replace Yale with Fale in text content', () => {
     const $ = cheerio.load(sampleHtmlWithYale);
+    let about_yale_uni = false;
+    
+    if ($('body').text().toLocaleLowerCase().includes('college') || $('body').text().toLocaleLowerCase().includes('university') || $('body').text().toLocaleLowerCase().includes('school')) {
+      about_yale_uni = true;
+    }
     
     // Process text nodes in the body
     $('body *').contents().filter(function() {
@@ -12,15 +17,20 @@ describe('Yale to Fale replacement logic', () => {
     }).each(function() {
       // Replace text content but not in URLs or attributes
       const text = $(this).text();
-      const newText = text.replace(/Yale/g, 'Fale').replace(/yale/g, 'fale');
-      if (text !== newText) {
-        $(this).replaceWith(newText);
+      if (about_yale_uni) {
+        const newText = text.replace(/Yale/g, 'Fale').replace(/yale/g, 'fale');
+        if (text !== newText) {
+          $(this).replaceWith(newText);
+        }
       }
     });
     
     // Process title separately
-    const title = $('title').text().replace(/Yale/g, 'Fale').replace(/yale/g, 'fale');
-    $('title').text(title);
+    const title = $('title').text();
+    if (about_yale_uni) {
+      const newTitle = title.replace(/Yale/g, 'Fale').replace(/yale/g, 'fale');
+      $('title').text(newTitle);
+    }
     
     const modifiedHtml = $.html();
     
@@ -64,14 +74,21 @@ describe('Yale to Fale replacement logic', () => {
     
     const $ = cheerio.load(htmlWithoutYale);
     
+    let about_yale_uni = false;
+    if ($('body').text().toLocaleLowerCase().includes('college') || $('body').text().toLocaleLowerCase().includes('university') || $('body').text().toLocaleLowerCase().includes('school')) {
+      about_yale_uni = true;
+    }
+    
     // Apply the same replacement logic
     $('body *').contents().filter(function() {
       return this.nodeType === 3;
     }).each(function() {
       const text = $(this).text();
-      const newText = text.replace(/Yale/g, 'Fale').replace(/yale/g, 'fale');
-      if (text !== newText) {
-        $(this).replaceWith(newText);
+      if (about_yale_uni) {
+        const newText = text.replace(/Yale/g, 'Fale').replace(/yale/g, 'fale');
+        if (text !== newText) {
+          $(this).replaceWith(newText);
+        }
       }
     });
     
@@ -89,19 +106,28 @@ describe('Yale to Fale replacement logic', () => {
     `;
     
     const $ = cheerio.load(mixedCaseHtml);
+
+    let about_yale_uni = false;
+    if ($('body').text().toLocaleLowerCase().includes('college') || $('body').text().toLocaleLowerCase().includes('university') || $('body').text().toLocaleLowerCase().includes('school')) {
+      about_yale_uni = true;
+    }
     
     $('body *').contents().filter(function() {
       return this.nodeType === 3;
     }).each(function() {
       const text = $(this).text();
-      const newText = text.replace(/Yale/gi, 'Fale');
-      if (text !== newText) {
-        $(this).replaceWith(newText);
+      // case insensitive so just replace Yale, yale, YALE with Fale
+      if (about_yale_uni) {
+        const newText = text.replace(/Yale/gi, 'Fale');
+        if (text !== newText) {
+          $(this).replaceWith(newText);
+        }
       }
     });
     
     const modifiedHtml = $.html();
     
-    expect(modifiedHtml).toContain('FALE University, Fale College, and fale medical school');
+    // case insensitive so only want to have "Fale"
+    expect(modifiedHtml).toContain('Fale University, Fale College, and Fale medical school');
   });
 });

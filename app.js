@@ -31,6 +31,11 @@ app.post('/fetch', async (req, res) => {
 
     // Use cheerio to parse HTML and selectively replace text content, not URLs
     const $ = cheerio.load(html);
+
+    let about_yale_university = false;
+    if ($('body').text().toLocaleLowerCase().includes('college') || $('body').text().toLocaleLowerCase().includes('university') || $('body').text().toLocaleLowerCase().includes('school')) {
+      about_yale_university = true;
+    }
     
     // Function to replace text but skip URLs and attributes
     function replaceYaleWithFale(i, el) {
@@ -41,7 +46,13 @@ app.post('/fetch', async (req, res) => {
         // Only process if it's a text node
         if (content && $(el).children().length === 0) {
           // Replace Yale with Fale in text content only
-          content = content.replace(/Yale/g, 'Fale').replace(/yale/g, 'fale').replace(/YALE/g, 'FALE');
+          if (about_yale_university) {
+            content = content.replace(/\b(Yale)\b/gi, (match) => {
+              if (match === 'Yale') return 'Fale';
+              if (match === 'YALE') return 'FALE';
+              return 'fale';
+            });
+          }
           $(el).html(content);
         }
       }
@@ -53,14 +64,26 @@ app.post('/fetch', async (req, res) => {
     }).each(function() {
       // Replace text content but not in URLs or attributes
       const text = $(this).text();
-      const newText = text.replace(/Yale/g, 'Fale').replace(/yale/g, 'fale').replace(/YALE/g, 'FALE');
-      if (text !== newText) {
-        $(this).replaceWith(newText);
+      if (about_yale_university) {
+        const newText = text.replace(/\b(Yale)\b/gi, (match) => {
+          if (match === 'Yale') return 'Fale';
+          if (match === 'YALE') return 'FALE';
+          return 'fale';
+        });
+        if (text !== newText) {
+          $(this).replaceWith(newText);
+        }
       }
     });
     
     // Process title separately
-    const title = $('title').text().replace(/Yale/g, 'Fale').replace(/yale/g, 'fale').replace(/YALE/g, 'FALE');
+    if (about_yale_university) {
+      title = $('title').text().replace(/\b(Yale)\b/gi, (match) => {
+        if (match === 'Yale') return 'Fale';
+        if (match === 'YALE') return 'FALE';
+        return 'fale';
+      });
+    }
     $('title').text(title);
     
     return res.json({ 
