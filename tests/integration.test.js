@@ -5,6 +5,8 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 const { sampleHtmlWithYale } = require('./test-utils');
 const nock = require('nock');
+const path = require('path');
+const fs = require('fs');
 
 // Set a different port for testing to avoid conflict with the main app
 describe('Integration Tests', () => {
@@ -17,14 +19,16 @@ describe('Integration Tests', () => {
     nock.disableNetConnect();
     nock.enableNetConnect('localhost');
     
-    // Create a temporary test app file
-    await execAsync('cp app.js app.test.js');
-    await execAsync(`sed -i '' 's/const PORT = 3001/const PORT = ${TEST_PORT}/' app.test.js`);
+    // Create a temporary test app file with correct path
+    const appContent = fs.readFileSync('app.js', 'utf8');
+    const modifiedContent = appContent.replace(/const PORT = 3001/, `const PORT = ${TEST_PORT}`);
+    fs.writeFileSync('app.test.js', modifiedContent);
     
     // Start the test server with proper process group
     server = require('child_process').spawn('node', ['app.test.js'], {
       detached: true,
-      stdio: 'ignore'
+      stdio: 'ignore',
+      cwd: process.cwd()
     });
     server.unref();  // Unreference from the parent process
 
@@ -57,7 +61,7 @@ describe('Integration Tests', () => {
     }
     
     try {
-      await execAsync('rm app.test.js');
+      fs.unlinkSync('app.test.js');
     } catch (error) {
       console.error('Error removing test file:', error);
     }
