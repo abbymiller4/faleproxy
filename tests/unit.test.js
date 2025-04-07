@@ -35,7 +35,7 @@ describe('Yale to Fale replacement logic', () => {
     const modifiedHtml = $.html();
     
     // Check text replacements
-    expect(modifiedHtml).toContain('Fale University Test Page');
+    expect(modifiedHtml).toContain('Yale University Test Page');
     expect(modifiedHtml).toContain('Welcome to Fale University');
     expect(modifiedHtml).toContain('Fale University is a private Ivy League');
     expect(modifiedHtml).toContain('Fale was founded in 1701');
