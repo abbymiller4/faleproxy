@@ -36,12 +36,12 @@ jobs:
         name: coverage-report-${{ github.sha }}-${{ github.run_attempt }}-${{ github.run_number }}
         path: coverage/
         retention-days: 5
-        
+
   deploy:
     needs: test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
-  
+    
     steps:
     - uses: actions/checkout@v4
     
@@ -50,14 +50,12 @@ jobs:
       with:
         node-version: '18.x'
         
-    - name: Install Vercel CLI
-      run: npm install --global vercel@latest
-      
-    - name: Pull Vercel Environment Information
-      run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-      
-    - name: Build Project Artifacts
-      run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-      
-    - name: Deploy Project Artifacts to Vercel
-      run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Deploy to Vercel
+      env:
+        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      run: npx vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --prod --confirm
