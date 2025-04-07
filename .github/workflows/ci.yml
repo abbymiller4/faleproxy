@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - main
-      - 'feature/**'
-      - 'fix/**'
+      - feature-branch
+
   pull_request:
     branches: [ main ]
 
@@ -39,9 +39,7 @@ jobs:
   preview:
     needs: test
     runs-on: ubuntu-latest
-    if: |
-      github.ref != 'refs/heads/main' &&
-      (github.event_name == 'push' || github.event_name == 'pull_request')
+    if: github.ref != 'refs/heads/main'
     environment:
       name: preview
       url: ${{ steps.deploy.outputs.url }}
@@ -64,9 +62,10 @@ jobs:
         VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       run: |
-        PREVIEW_URL=$(npx vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --yes)
-        echo "url=$PREVIEW_URL" >> $GITHUB_OUTPUT
-        echo "Preview URL: $PREVIEW_URL"
+         echo "Deploying branch: ${GITHUB_REF#refs/heads/}"
+         PREVIEW_URL=$(npx vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --public --yes)
+         echo "url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+         echo "Preview URL: $PREVIEW_URL"
 
   deploy:
     runs-on: ubuntu-latest
