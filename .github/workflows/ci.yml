@@ -1,9 +1,11 @@
 name: Faleproxy CI
 
 on:
-  # Only trigger on main branch events
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - 'feature/**'
+      - 'fix/**'
   pull_request:
     branches: [ main ]
 
@@ -34,16 +36,48 @@ jobs:
         path: coverage/
         retention-days: 5
 
+  preview:
+    needs: test
+    runs-on: ubuntu-latest
+    if: |
+      github.ref != 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'pull_request')
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Deploy to Vercel Preview
+      id: deploy
+      env:
+        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      run: |
+        PREVIEW_URL=$(npx vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --yes)
+        echo "url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+        echo "Preview URL: $PREVIEW_URL"
+
   deploy:
     runs-on: ubuntu-latest
     needs: test
-    # Only deploy on main branch pushes when tests pass
     if: |
       github.ref == 'refs/heads/main' &&
       github.event_name == 'push' &&
       success()
-    environment: production
-    # Ensure only one deployment runs at a time
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
     concurrency: 
       group: production
       cancel-in-progress: false
@@ -59,14 +93,17 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    # Double-check tests before deployment
     - name: Verify tests pass
       run: npm run test:ci
 
     - name: Deploy to Vercel Production
-      if: success() # Only deploy if the verification tests passed
+      id: deploy
+      if: success()
       env:
         VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+      run: |
+        PROD_URL=$(npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes)
+        echo "url=$PROD_URL" >> $GITHUB_OUTPUT
+        echo "Production URL: $PROD_URL"
